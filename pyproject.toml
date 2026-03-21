@@ -1,0 +1,20 @@
+[build-system]
+requires = ["setuptools>=68.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "mc-foreman"
+version = "0.1.0"
+description = "Minecraft building workflow engine: LLM generates commands, RCON executes on server, results verified"
+requires-python = ">=3.10"
+license = {text = "MIT"}
+
+[project.scripts]
+mc-foreman = "mc_foreman.cli:main"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["src"]

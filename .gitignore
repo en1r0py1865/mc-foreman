@@ -1,0 +1,78 @@
+# Python bytecode / caches
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Python packaging / build
+.Python
+build/
+dist/
+site/
+htmlcov/
+*.egg-info/
+.eggs/
+pip-wheel-metadata/
+wheelhouse/
+
+# Virtual environments / tool state
+.venv/
+venv/
+env/
+ENV/
+.python-version
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.hypothesis/
+.tox/
+.nox/
+.coverage
+.coverage.*
+coverage.xml
+
+# Type checker / notebook / local tooling
+.dmypy.json
+.pyre/
+.ipynb_checkpoints/
+
+# macOS / OS junk
+.DS_Store
+.AppleDouble
+.LSOverride
+Icon
+Thumbs.db
+
+# Editors / IDEs
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Claude / agent tooling
+.claude/
+claude-debug.log
+
+# Local env / secrets
+.env
+.env.*
+*.local
+*.secret
+secrets/
+
+# Runtime / generated data
+data/
+logs/
+*.sqlite3
+*.sqlite3-shm
+*.sqlite3-wal
+*.log
+
+# Test / demo / result outputs
+screenshots/
+artifacts/
+results/
+outputs/
+.tmp/
+tmp/
+
