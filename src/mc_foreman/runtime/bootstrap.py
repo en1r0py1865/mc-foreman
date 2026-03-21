@@ -118,6 +118,7 @@ def bootstrap_runtime_hook(db_path=None, adapter_factory=None):
 class _MockConfig:
     execution_mode = "mock"
     execution_tmp_dir = _infer_project_root() / "data" / "execution"
+    world_type = "superflat"
 
 
 def bootstrap_worker(
@@ -158,10 +159,12 @@ def bootstrap_worker(
     task_repo = TaskRepo()
     event_repo = EventRepo()
     queue_repo = QueueRepo()
-    task_service = TaskService(conn, task_repo, event_repo, queue_repo)
-
     if config is None:
         config = _MockConfig()
+
+    from mc_foreman.execution.zone_allocator import zone_y_for_world_type
+    zone_y = zone_y_for_world_type(getattr(config, "world_type", "superflat"))
+    task_service = TaskService(conn, task_repo, event_repo, queue_repo, zone_y=zone_y)
 
     bridge = ExecutionBridge(config)
 

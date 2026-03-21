@@ -113,6 +113,29 @@ src/mc_foreman/
 tests/            repo-local tests
 ```
 
+## World type configuration
+
+mc-foreman adjusts the building base Y-level according to your Minecraft world type.
+Use `--world-type` to match your server's world:
+
+| `--world-type` | Base Y | Suitable for |
+|---|---|---|
+| `superflat` (default) | -59 | Default superflat world |
+| `normal` | 64 | Standard terrain (plains, ocean) |
+
+Examples:
+
+```bash
+# Default: superflat world (Y=-59)
+uv run mc-foreman build "喷泉" --mode claude_rcon
+
+# Normal world
+uv run mc-foreman build "喷泉" --mode claude_rcon --world-type normal
+```
+
+> **Note:** For normal worlds with hilly/mountainous terrain, Y=64 may still
+> be below the local surface. A future version may add runtime terrain detection.
+
 ## Environment notes
 
 Primary runtime env var:

@@ -100,8 +100,10 @@ class ExecutionBridge:
             area_hint = f"x={x_min}..{x_max}, z={z_min}..{z_max}"
             y_hint = f"Y={y_min} 到 Y={y_min + 8}"
         else:
+            from mc_foreman.execution.zone_allocator import WORLD_TYPE_Y, DEFAULT_WORLD_TYPE
+            default_y = WORLD_TYPE_Y[DEFAULT_WORLD_TYPE]
             area_hint = "x=100..120, z=200..220"
-            y_hint = "Y=64 到 Y=72"
+            y_hint = f"Y={default_y} 到 Y={default_y + 8}"
 
         if self._is_bridge_theme(task.theme):
             return self._build_bridge_prompt(task.theme, area_hint, y_hint)

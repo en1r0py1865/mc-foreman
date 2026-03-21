@@ -23,11 +23,12 @@ def _id() -> str:
 
 
 class TaskService:
-    def __init__(self, conn, task_repo: TaskRepo, event_repo: EventRepo, queue_repo: QueueRepo):
+    def __init__(self, conn, task_repo: TaskRepo, event_repo: EventRepo, queue_repo: QueueRepo, zone_y: Optional[int] = None):
         self.conn = conn
         self.task_repo = task_repo
         self.event_repo = event_repo
         self.queue_repo = queue_repo
+        self.zone_y = zone_y
 
     def list_my_tasks(self, submitter_id: str, page: int = 1, page_size: int = 5):
         return self.task_repo.list_by_submitter(self.conn, submitter_id, page=page, page_size=page_size)
@@ -109,7 +110,7 @@ class TaskService:
             )
             if passed:
                 next_state = "queued"
-                zone = allocate_zone(self.task_repo.next_zone_index(self.conn))
+                zone = allocate_zone(self.task_repo.next_zone_index(self.conn), zone_y=self.zone_y)
                 zone_ok, _issues = preflight_check(zone)
                 zone_assignment = zone.to_assignment_str() if zone_ok else None
                 self.task_repo.update_state(

@@ -18,10 +18,17 @@ ZONE_SIZE_X = 64
 ZONE_SIZE_Z = 64
 ZONE_ORIGIN_X = 100
 ZONE_ORIGIN_Z = 200
-ZONE_Y = 64
 ZONE_PITCH_X = 192
 ZONE_PITCH_Z = 192
 GRID_COLUMNS = 8  # wrap after 8 sparse columns in X direction
+
+# World-type-aware base Y mapping.
+# Each value is the first air layer above the surface in that world type.
+WORLD_TYPE_Y = {
+    "superflat": -59,   # default superflat grass at Y=-60, first air at -59
+    "normal": 64,       # plains grass ~Y=63, first air at 64
+}
+DEFAULT_WORLD_TYPE = "superflat"
 
 
 @dataclass
@@ -66,8 +73,16 @@ class BuildZone:
 _zone_counter = 0
 
 
-def build_zone_for_index(index: int) -> BuildZone:
+def zone_y_for_world_type(world_type: str) -> int:
+    """Return the base Y-level for a given world type."""
+    return WORLD_TYPE_Y.get(world_type, WORLD_TYPE_Y[DEFAULT_WORLD_TYPE])
+
+
+def build_zone_for_index(index: int, zone_y: int | None = None) -> BuildZone:
     """Build a deterministic zone for a specific sequential index."""
+    if zone_y is None:
+        zone_y = WORLD_TYPE_Y[DEFAULT_WORLD_TYPE]
+
     col = index % GRID_COLUMNS
     row = index // GRID_COLUMNS
 
@@ -77,14 +92,14 @@ def build_zone_for_index(index: int) -> BuildZone:
     return BuildZone(
         origin_x=origin_x,
         origin_z=origin_z,
-        y=ZONE_Y,
+        y=zone_y,
         size_x=ZONE_SIZE_X,
         size_z=ZONE_SIZE_Z,
         zone_index=index,
     )
 
 
-def allocate_zone(index: int | None = None):
+def allocate_zone(index: int | None = None, zone_y: int | None = None):
     """Allocate the next build zone deterministically.
 
     When *index* is provided, derive the zone directly from that persisted
@@ -94,7 +109,7 @@ def allocate_zone(index: int | None = None):
     if index is None:
         index = _zone_counter
         _zone_counter += 1
-    return build_zone_for_index(int(index))
+    return build_zone_for_index(int(index), zone_y=zone_y)
 
 
 def reset_zone_counter():

@@ -28,6 +28,7 @@ def _build_config(args):
         claude_bin = args.claude_bin
         command_generator_strategy = args.generator
         command_generation_timeout = args.timeout
+        world_type = args.world_type
 
     CLIConfig.execution_tmp_dir.mkdir(parents=True, exist_ok=True)
     return CLIConfig()
@@ -120,6 +121,8 @@ def main(argv=None):
     build_p.add_argument("--claude-bin", default="claude")
     build_p.add_argument("--generator", default="claude")
     build_p.add_argument("--timeout", type=int, default=180)
+    build_p.add_argument("--world-type", default="superflat", choices=["superflat", "normal"],
+                         help="Minecraft world type (affects build base Y-level)")
 
     status_p = sub.add_parser("status", help="Check task status")
     _add_common_args(status_p)

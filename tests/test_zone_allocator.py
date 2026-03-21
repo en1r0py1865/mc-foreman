@@ -7,6 +7,8 @@ from mc_foreman.execution.zone_allocator import (
     ZONE_PITCH_Z,
     preflight_check,
     reset_zone_counter,
+    allocate_zone,
+    zone_y_for_world_type,
 )
 from mc_foreman.infra.db import get_connection, init_db, reset_db_files
 from mc_foreman.repositories.event_repo import EventRepo
@@ -108,6 +110,31 @@ def test_zone_assignment_persists_across_fresh_task_service_instances():
     print("  zone_assignment_persists_across_fresh_task_service_instances ok")
 
 
+def test_zone_y_for_world_type_superflat():
+    assert zone_y_for_world_type("superflat") == -59
+    print("  zone_y_for_world_type_superflat ok")
+
+
+def test_zone_y_for_world_type_normal():
+    assert zone_y_for_world_type("normal") == 64
+    print("  zone_y_for_world_type_normal ok")
+
+
+def test_allocate_zone_with_custom_zone_y():
+    reset_zone_counter()
+    zone = allocate_zone(0, zone_y=-59)
+    assert zone.y == -59
+    assert zone.zone_index == 0
+    print("  allocate_zone_with_custom_zone_y ok")
+
+
+def test_default_zone_y_is_superflat():
+    reset_zone_counter()
+    zone = allocate_zone(0)
+    assert zone.y == -59
+    print("  default_zone_y_is_superflat ok")
+
+
 def test_preflight_check_rejects_spawn_overlap():
     zone = BuildZone(origin_x=0, origin_z=0, y=64, size_x=64, size_z=64, zone_index=99)
     ok, issues = preflight_check(zone)
@@ -122,6 +149,10 @@ def main():
         test_zone_assignment_roundtrip_and_prompt_uses_zone,
         test_sparse_zone_spacing_keeps_successive_builds_far_apart,
         test_zone_assignment_persists_across_fresh_task_service_instances,
+        test_zone_y_for_world_type_superflat,
+        test_zone_y_for_world_type_normal,
+        test_allocate_zone_with_custom_zone_y,
+        test_default_zone_y_is_superflat,
         test_preflight_check_rejects_spawn_overlap,
     ]
     passed = 0
