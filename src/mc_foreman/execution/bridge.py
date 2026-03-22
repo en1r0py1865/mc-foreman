@@ -46,7 +46,7 @@ class ExecutionBridge:
 
     Modes:
     - mock: immediately succeed
-    - claude_rcon: generate commands via configurable generator, extract, send over RCON
+    - live: generate commands via configurable generator, extract, send over RCON
     """
 
     player_selector = "@p"
@@ -69,7 +69,7 @@ class ExecutionBridge:
         mode = self.config.execution_mode
         if mode == "mock":
             return self._execute_mock(task)
-        if mode == "claude_rcon":
+        if mode == "live":
             return self._execute_via_generator_rcon(task)
         return ExecutionResult(success=False, reason=f"unsupported execution mode: {mode}")
 
@@ -514,7 +514,7 @@ class ExecutionBridge:
             theme=task.theme,
             commands_path=str(commands_path),
             verification={
-                "mode": "claude_rcon",
+                "mode": "live",
                 "verified": True,
                 "changed_blocks": changed_blocks,
                 "placement_samples": analysis.sampled_placements,

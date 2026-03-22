@@ -1,13 +1,9 @@
-"""Command generator abstraction with configurable strategy and fallback.
+"""Command generator abstraction with configurable strategy.
 
 Strategies:
 - claude: generate via Claude CLI subprocess
 - codex: generate via Codex CLI subprocess
-- claude_then_codex: try Claude first, fall back to Codex on timeout/failure
-
-Backward-compatible aliases:
-- chatgpt -> codex
-- claude_then_chatgpt -> claude_then_codex
+- gemini: generate via Gemini CLI subprocess
 """
 
 from __future__ import annotations
@@ -145,29 +141,46 @@ class CodexGenerator(CommandGenerator):
             )
 
 
-class FallbackGenerator(CommandGenerator):
-    """Try primary generator, fall back to secondary on failure."""
+class GeminiGenerator(CommandGenerator):
+    """Generate commands via Gemini CLI subprocess."""
 
-    name = "fallback"
+    name = "gemini"
 
-    def __init__(self, primary: CommandGenerator, secondary: CommandGenerator):
-        self.primary = primary
-        self.secondary = secondary
+    def __init__(self, gemini_bin: str = "gemini", timeout: int = 180):
+        self.gemini_bin = gemini_bin
+        self.timeout = timeout
 
     def generate(self, prompt: str) -> GenerationResult:
-        result = self.primary.generate(prompt)
-        if result.success:
-            return result
-        fallback_result = self.secondary.generate(prompt)
-        if fallback_result.success:
-            fallback_result.error = f"primary ({self.primary.name}) failed: {result.error}"
-            return fallback_result
-        if not fallback_result.error:
-            fallback_result.error = (
-                f"primary ({self.primary.name}) failed: {result.error}; "
-                f"secondary ({self.secondary.name}) failed"
+        try:
+            proc = subprocess.run(
+                [self.gemini_bin, "-p", prompt],
+                capture_output=True,
+                text=True,
+                timeout=self.timeout,
             )
-        return fallback_result
+            if proc.returncode != 0 or not proc.stdout.strip():
+                return GenerationResult(
+                    success=False,
+                    generator_used=self.name,
+                    error=f"gemini exited {proc.returncode}",
+                )
+            return GenerationResult(
+                success=True,
+                raw_text=proc.stdout,
+                generator_used=self.name,
+            )
+        except subprocess.TimeoutExpired:
+            return GenerationResult(
+                success=False,
+                generator_used=self.name,
+                error=f"gemini timed out after {self.timeout}s",
+            )
+        except FileNotFoundError:
+            return GenerationResult(
+                success=False,
+                generator_used=self.name,
+                error="gemini binary not found",
+            )
 
 
 def build_generator(config) -> CommandGenerator:
@@ -176,33 +189,26 @@ def build_generator(config) -> CommandGenerator:
     config.command_generator_strategy:
     - "claude"
     - "codex"
-    - "claude_then_codex"
-
-    Backward-compatible aliases:
-    - "chatgpt" -> "codex"
-    - "claude_then_chatgpt" -> "claude_then_codex"
+    - "gemini"
     """
     strategy = getattr(config, "command_generator_strategy", "claude")
-    normalized = {
-        "chatgpt": "codex",
-        "claude_then_chatgpt": "claude_then_codex",
-    }.get(strategy, strategy)
+    timeout = getattr(config, "command_generation_timeout", 180)
 
-    claude_gen = ClaudeGenerator(
-        claude_bin=getattr(config, "claude_bin", "claude"),
-        timeout=getattr(config, "command_generation_timeout", 180),
-    )
-    codex_gen = CodexGenerator(
-        codex_bin=getattr(config, "codex_bin", "codex"),
-        timeout=getattr(config, "command_generation_timeout", 180),
-        model=getattr(config, "codex_model", ""),
-        cwd=getattr(config, "project_root", None),
-    )
-
-    if normalized == "claude":
-        return claude_gen
-    if normalized == "codex":
-        return codex_gen
-    if normalized == "claude_then_codex":
-        return FallbackGenerator(claude_gen, codex_gen)
+    if strategy == "claude":
+        return ClaudeGenerator(
+            claude_bin=getattr(config, "claude_bin", "claude"),
+            timeout=timeout,
+        )
+    if strategy == "codex":
+        return CodexGenerator(
+            codex_bin=getattr(config, "codex_bin", "codex"),
+            timeout=timeout,
+            model=getattr(config, "codex_model", ""),
+            cwd=getattr(config, "project_root", None),
+        )
+    if strategy == "gemini":
+        return GeminiGenerator(
+            gemini_bin=getattr(config, "gemini_bin", "gemini"),
+            timeout=timeout,
+        )
     raise ValueError(f"unknown generator strategy: {strategy}")

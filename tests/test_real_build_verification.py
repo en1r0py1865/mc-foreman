@@ -38,7 +38,7 @@ def _task(zone_assignment="zone:0@100,64,200/64x64"):
 def _config(tmp_dir: Path):
     project_root = Path(__file__).resolve().parents[1]
     return SimpleNamespace(
-        execution_mode="claude_rcon",
+        execution_mode="live",
         execution_tmp_dir=tmp_dir,
         project_root=project_root,
         rcon_host="127.0.0.1",

@@ -1,4 +1,4 @@
-"""Tests for command generator selection, fallback, and bridge prompt hardening."""
+"""Tests for command generator selection and bridge prompt hardening."""
 
 from __future__ import annotations
 
@@ -9,7 +9,7 @@ from mc_foreman.execution.generator import (
     ClaudeGenerator,
     CodexGenerator,
     CommandGenerator,
-    FallbackGenerator,
+    GeminiGenerator,
     GenerationResult,
     build_generator,
 )
@@ -72,47 +72,15 @@ def test_build_generator_codex():
     print("  build_generator codex ok")
 
 
-def test_build_generator_fallback():
+def test_build_generator_gemini():
     cfg = SimpleNamespace(
-        command_generator_strategy="claude_then_codex",
-        claude_bin="claude",
-        codex_bin="codex",
-        codex_model="",
+        command_generator_strategy="gemini",
+        gemini_bin="gemini",
         command_generation_timeout=60,
-        project_root="/tmp",
     )
     gen = build_generator(cfg)
-    assert isinstance(gen, FallbackGenerator)
-    assert isinstance(gen.primary, ClaudeGenerator)
-    assert isinstance(gen.secondary, CodexGenerator)
-    print("  build_generator claude_then_codex ok")
-
-
-def test_build_generator_legacy_aliases_map_to_codex():
-    direct = build_generator(
-        SimpleNamespace(
-            command_generator_strategy="chatgpt",
-            claude_bin="claude",
-            codex_bin="codex",
-            codex_model="",
-            command_generation_timeout=60,
-            project_root="/tmp",
-        )
-    )
-    fallback = build_generator(
-        SimpleNamespace(
-            command_generator_strategy="claude_then_chatgpt",
-            claude_bin="claude",
-            codex_bin="codex",
-            codex_model="",
-            command_generation_timeout=60,
-            project_root="/tmp",
-        )
-    )
-    assert isinstance(direct, CodexGenerator)
-    assert isinstance(fallback, FallbackGenerator)
-    assert isinstance(fallback.secondary, CodexGenerator)
-    print("  build_generator legacy aliases ok")
+    assert isinstance(gen, GeminiGenerator)
+    print("  build_generator gemini ok")
 
 
 def test_build_generator_invalid():
@@ -126,51 +94,7 @@ def test_build_generator_invalid():
 
 
 # ---------------------------------------------------------------------------
-# 2. Fallback behaviour
-# ---------------------------------------------------------------------------
-
-def test_fallback_uses_primary_when_ok():
-    primary = StubGenerator("p", succeed=True, text="primary_output")
-    secondary = StubGenerator("s", succeed=True, text="secondary_output")
-    fb = FallbackGenerator(primary, secondary)
-    result = fb.generate("test")
-    assert result.success
-    assert result.raw_text == "primary_output"
-    assert result.generator_used == "p"
-    assert primary.call_count == 1
-    assert secondary.call_count == 0
-    print("  fallback primary ok")
-
-
-def test_fallback_uses_secondary_on_failure():
-    primary = StubGenerator("claude", succeed=False, error="claude timed out after 60s")
-    secondary = StubGenerator("codex", succeed=True, text="fallback_output")
-    fb = FallbackGenerator(primary, secondary)
-    result = fb.generate("test")
-    assert result.success
-    assert result.raw_text == "fallback_output"
-    assert result.generator_used == "codex"
-    assert primary.call_count == 1
-    assert secondary.call_count == 1
-    assert "primary (claude) failed: claude timed out" in result.error
-    print("  fallback secondary ok")
-
-
-def test_fallback_both_fail():
-    primary = StubGenerator("claude", succeed=False, error="claude timed out")
-    secondary = StubGenerator("codex", succeed=False, error="codex exited 1")
-    fb = FallbackGenerator(primary, secondary)
-    result = fb.generate("test")
-    assert not result.success
-    assert result.generator_used == "codex"
-    assert result.error == "codex exited 1"
-    assert primary.call_count == 1
-    assert secondary.call_count == 1
-    print("  fallback both fail ok")
-
-
-# ---------------------------------------------------------------------------
-# 3. Bridge prompt hardening
+# 2. Bridge prompt hardening
 # ---------------------------------------------------------------------------
 
 def test_bridge_theme_detection():
@@ -217,7 +141,7 @@ def test_bridge_prompt_smaller_than_general():
 
 
 # ---------------------------------------------------------------------------
-# 4. Bridge uses injected generator / prompt path
+# 3. Bridge uses injected generator / prompt path
 # ---------------------------------------------------------------------------
 
 def test_bridge_uses_injected_generator():
@@ -228,27 +152,6 @@ def test_bridge_uses_injected_generator():
     print("  bridge accepts injected generator ok")
 
 
-def test_bridge_prompt_reaches_fallback_generator_for_bridge_theme():
-    cfg = SimpleNamespace(execution_mode="mock", execution_tmp_dir="/tmp/test")
-    primary = StubGenerator("claude", succeed=False, error="claude timed out after 30s")
-    secondary = StubGenerator("codex", succeed=True, text="```mcfunction\n/fill 1 2 3 4 5 6 stone_bricks\n```")
-    bridge = ExecutionBridge(cfg, generator=FallbackGenerator(primary, secondary))
-    task = _MinimalTask(theme="江南拱桥")
-
-    prompt = bridge._build_prompt(task)
-    result = bridge.generator.generate(prompt)
-
-    assert result.success
-    assert result.generator_used == "codex"
-    assert primary.call_count == 1
-    assert secondary.call_count == 1
-    assert secondary.last_prompt is not None
-    assert "仅使用 /fill" in secondary.last_prompt
-    assert "stone_bricks" in secondary.last_prompt
-    assert "跨度 ≤ 20 格" in secondary.last_prompt
-    print("  bridge prompt reaches codex fallback ok")
-
-
 # ---------------------------------------------------------------------------
 # Main
 # ---------------------------------------------------------------------------
@@ -256,18 +159,13 @@ def test_bridge_prompt_reaches_fallback_generator_for_bridge_theme():
 def main():
     test_build_generator_claude()
     test_build_generator_codex()
-    test_build_generator_fallback()
-    test_build_generator_legacy_aliases_map_to_codex()
+    test_build_generator_gemini()
     test_build_generator_invalid()
-    test_fallback_uses_primary_when_ok()
-    test_fallback_uses_secondary_on_failure()
-    test_fallback_both_fail()
     test_bridge_theme_detection()
     test_bridge_prompt_is_constrained()
     test_general_prompt_for_non_bridge()
     test_bridge_prompt_smaller_than_general()
     test_bridge_uses_injected_generator()
-    test_bridge_prompt_reaches_fallback_generator_for_bridge_theme()
     print("\ngenerator tests passed ✅")
 
 

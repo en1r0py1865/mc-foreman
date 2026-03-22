@@ -25,8 +25,8 @@ Not included here:
 - Python 3.10+
 - [`uv`](https://docs.astral.sh/uv/)
 - Optional for real builds:
-  - `claude` CLI on PATH
   - a Minecraft server with RCON enabled
+  - at least one LLM CLI on PATH: `claude`, `codex`, or `gemini`
 
 ## Quick start
 
@@ -81,14 +81,14 @@ uv run python src/mc_foreman/code/rcon_send.py --host 127.0.0.1 --port 25575 "li
 Then run a real build:
 
 ```bash
-uv run mc-foreman build "小石亭" --mode claude_rcon
+uv run mc-foreman build "小石亭" --mode live
 ```
 
 Before sending build commands, the runtime first teleports the player to the front of the assigned build zone so the player starts from a predictable viewing position.
 
 For a successful real build you should expect:
 - task submission succeeds
-- Claude generates commands
+- LLM generates commands
 - RCON execution succeeds
 - task ends in `completed`
 - verification/result bundle is written
@@ -113,6 +113,36 @@ src/mc_foreman/
 tests/            repo-local tests
 ```
 
+## Generator 选择
+
+Use `--generator` to choose which LLM CLI generates the Minecraft commands:
+
+| `--generator` | CLI tool | Invocation |
+|---|---|---|
+| `claude` (default) | `claude` | `claude --print --permission-mode bypassPermissions "<prompt>"` |
+| `codex` | `codex` | `codex exec --sandbox read-only --skip-git-repo-check "<prompt>"` |
+| `gemini` | `gemini` | `gemini -p "<prompt>"` |
+
+Examples:
+
+```bash
+# Use Claude (default)
+uv run mc-foreman build "小石亭" --mode live
+
+# Use Gemini
+uv run mc-foreman build "小石亭" --mode live --generator gemini
+
+# Use Codex
+uv run mc-foreman build "小石亭" --mode live --generator codex
+```
+
+You can also override the binary path:
+
+```bash
+uv run mc-foreman build "小石亭" --mode live --generator claude --claude-bin /usr/local/bin/claude
+uv run mc-foreman build "小石亭" --mode live --generator gemini --gemini-bin /usr/local/bin/gemini
+```
+
 ## World type configuration
 
 mc-foreman adjusts the building base Y-level according to your Minecraft world type.
@@ -127,10 +157,10 @@ Examples:
 
 ```bash
 # Default: superflat world (Y=-59)
-uv run mc-foreman build "喷泉" --mode claude_rcon
+uv run mc-foreman build "喷泉" --mode live
 
 # Normal world
-uv run mc-foreman build "喷泉" --mode claude_rcon --world-type normal
+uv run mc-foreman build "喷泉" --mode live --world-type normal
 ```
 
 > **Note:** For normal worlds with hilly/mountainous terrain, Y=64 may still
@@ -143,7 +173,7 @@ Primary runtime env var:
 
 Current execution modes:
 - `mock`
-- `claude_rcon`
+- `live`
 
 This core runtime does not include screenshot capture.
 

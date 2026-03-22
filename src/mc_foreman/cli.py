@@ -26,6 +26,7 @@ def _build_config(args):
         rcon_port = args.rcon_port
         rcon_password = args.rcon_password
         claude_bin = args.claude_bin
+        gemini_bin = args.gemini_bin
         command_generator_strategy = args.generator
         command_generation_timeout = args.timeout
         world_type = args.world_type
@@ -112,14 +113,15 @@ def main(argv=None):
     build_p = sub.add_parser("build", help="Submit and execute a build")
     _add_common_args(build_p)
     build_p.add_argument("theme", help="Build theme (e.g. '小石亭')")
-    build_p.add_argument("--mode", default="claude_rcon", choices=["mock", "claude_rcon"])
+    build_p.add_argument("--mode", default="live", choices=["mock", "live"])
     build_p.add_argument("--size", default="small", choices=["small", "medium"])
     build_p.add_argument("--user", default="cli")
     build_p.add_argument("--rcon-host", default="127.0.0.1")
     build_p.add_argument("--rcon-port", type=int, default=25575)
     build_p.add_argument("--rcon-password", default=os.environ.get("MC_RCON_PASSWORD"))
     build_p.add_argument("--claude-bin", default="claude")
-    build_p.add_argument("--generator", default="claude")
+    build_p.add_argument("--generator", default="claude", choices=["claude", "codex", "gemini"])
+    build_p.add_argument("--gemini-bin", default="gemini")
     build_p.add_argument("--timeout", type=int, default=180)
     build_p.add_argument("--world-type", default="superflat", choices=["superflat", "normal"],
                          help="Minecraft world type (affects build base Y-level)")
